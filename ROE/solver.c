@@ -45,12 +45,6 @@ void solverInit(struct solverStruct* solver, struct inputStruct* input){
 
     solverInitU(solver, input->n, input->p0, input->T0, input->p1, input->T1);
 
-    solverPrint(solver, 0);
-
-    solverSimulate(solver);
-
-    fclose(solver->output);
-
 }
 
 void solverInitU(struct solverStruct* solver, int n, FTYPE p0, FTYPE T0, FTYPE p1, FTYPE T1){
@@ -273,6 +267,8 @@ void solverSimulate(struct solverStruct* solver){
     int ii;
     float save = solver->saveStep;
 
+    solverPrint(solver, 0);
+
     for(ii=0; ii<solver->Ns; ii++){
         solver->CFL = 0.0;
         solverPropagate(solver);
@@ -282,11 +278,16 @@ void solverSimulate(struct solverStruct* solver){
             printf("\nCalculating solution %i.", ii);
             solverPrint(solver, ii);
             save += solver->saveStep;
+
         };
 
     };
+
     printf("\nCalculating solution %i.", ii);
+
     solverPrint(solver, ii);
+
+    fclose(solver->output);
 
 }
 

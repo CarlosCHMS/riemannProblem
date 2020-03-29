@@ -9,8 +9,12 @@ int main(){
     struct solverStruct* solver = malloc(sizeof(struct solverStruct));
 
     inputInit(input);
+
     inputPrintParameters(input);
+
     solverInit(solver, input);
+
+    solverSimulate(solver);
 
     return 0;
 

@@ -30,3 +30,14 @@
 
 1585426306 /home/carlos/Documents/Riemann solver/ROE/ROE_c/ROE/input.h
 
+1585426464 source:/home/carlos/Documents/Riemann solver/riemannProblem/ROE/input.c
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	"solver.h"
+	"input.h"
+
+1585483280 /home/carlos/Documents/Riemann solver/riemannProblem/ROE/solver.h
+
+1585426306 /home/carlos/Documents/Riemann solver/riemannProblem/ROE/input.h
+
