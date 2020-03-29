@@ -1,0 +1,32 @@
+# depslib dependency file v1.0
+1585395798 source:/home/carlos/Documents/Riemann solver/ROE/ROE_c/ROE/ROE/main.c
+	<stdio.h>
+	<stdlib.h>
+	"solver.h"
+
+1585395805 /home/carlos/Documents/Riemann solver/ROE/ROE_c/ROE/ROE/solver.h
+
+1585424022 source:/home/carlos/Documents/Riemann solver/ROE/ROE_c/ROE/main.c
+	<stdio.h>
+	<stdlib.h>
+	"input.h"
+	"solver.h"
+
+1585483280 /home/carlos/Documents/Riemann solver/ROE/ROE_c/ROE/solver.h
+
+1585489812 source:/home/carlos/Documents/Riemann solver/ROE/ROE_c/ROE/solver.c
+	<stdio.h>
+	<stdlib.h>
+	<math.h>
+	"input.h"
+	"solver.h"
+
+1585426464 source:/home/carlos/Documents/Riemann solver/ROE/ROE_c/ROE/input.c
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	"solver.h"
+	"input.h"
+
+1585426306 /home/carlos/Documents/Riemann solver/ROE/ROE_c/ROE/input.h
+
