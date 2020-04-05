@@ -11,15 +11,15 @@ void solverAlloc(struct solverStruct* solver){
 
     solver->U = (FTYPE**)malloc(solver->N*sizeof(FTYPE*));
     solver->newU = (FTYPE**)malloc(solver->N*sizeof(FTYPE*));
-    solver->F = (FTYPE**)malloc(solver->N*sizeof(FTYPE*));
+    //solver->F = (FTYPE**)malloc(solver->N*sizeof(FTYPE*));
     solver->flux = (FTYPE**)malloc((solver->N-1)*sizeof(FTYPE*));
 
-    solver->sqrtRho = (FTYPE*)malloc(solver->N*sizeof(FTYPE));
+    //solver->sqrtRho = (FTYPE*)malloc(solver->N*sizeof(FTYPE));
 
     for(ii=0; ii<solver->N; ii++){
         solver->U[ii] = (FTYPE*)malloc(3*sizeof(FTYPE));
         solver->newU[ii] = (FTYPE*)malloc(3*sizeof(FTYPE));
-        solver->F[ii] = (FTYPE*)malloc(3*sizeof(FTYPE));
+        //solver->F[ii] = (FTYPE*)malloc(3*sizeof(FTYPE));
 
         if(ii<(solver->N-1)){
             solver->flux[ii] = (FTYPE*)malloc(3*sizeof(FTYPE));
@@ -128,6 +128,7 @@ void calcUPH(struct solverStruct* solver, int ii,  FTYPE* u, FTYPE* p, FTYPE* h)
 
 }
 
+/*
 void solverCalcF(struct solverStruct* solver){
 
     int ii;
@@ -145,14 +146,20 @@ void solverCalcF(struct solverStruct* solver){
     };
 
 }
-
+*/
 void solverCalcFlux(struct solverStruct* solver){
 
     FTYPE u0, p0, h0, u1, p1, h1, rhom, rd, um, hm, cm;
-    FTYPE alp0, alp1, alp2, e0, e1, e2;
+    FTYPE alp0, alp1, alp2, e0, e1, e2, sqrtR0, sqrtR1;
+    FTYPE* F0;
+    FTYPE* F1;
+
     FTYPE* vec0;
     FTYPE* vec1;
     FTYPE* vec2;
+
+    F0 = (FTYPE*)malloc(3*sizeof(FTYPE));
+    F1 = (FTYPE*)malloc(3*sizeof(FTYPE));
 
     vec0 = (FTYPE*)malloc(3*sizeof(FTYPE));
     vec1 = (FTYPE*)malloc(3*sizeof(FTYPE));
@@ -163,14 +170,26 @@ void solverCalcFlux(struct solverStruct* solver){
     for(ii=0; ii<(solver->N-1); ii++){
 
         calcUPH(solver, ii, &u0, &p0, &h0);
+
+        F0[0] = solver->U[ii][1];
+        F0[1] = solver->U[ii][1]*u0 + p0;
+        F0[2] = solver->U[ii][1]*h0;
+
         calcUPH(solver, ii+1, &u1, &p1, &h1);
 
-        rhom = solver->sqrtRho[ii]*solver->sqrtRho[ii+1];
+        F1[0] = solver->U[ii+1][1];
+        F1[1] = solver->U[ii+1][1]*u1 + p1;
+        F1[2] = solver->U[ii+1][1]*h1;
 
-        rd = (solver->sqrtRho[ii] + solver->sqrtRho[ii+1]);
-        um = (solver->sqrtRho[ii]*u0 + solver->sqrtRho[ii+1]*u1)/rd;
+        sqrtR0 = sqrt(solver->U[ii][0]);
+        sqrtR1 = sqrt(solver->U[ii+1][0]);
+
+        rhom = sqrtR0*sqrtR1;
+
+        rd = (sqrtR0 + sqrtR1);
+        um = (sqrtR0*u0 + sqrtR1*u1)/rd;
         //pm = (solver->sqrtRho[ii]*p0 + solver->sqrtRho[ii+1]*p1)/rd
-        hm = (solver->sqrtRho[ii]*h0 + solver->sqrtRho[ii+1]*h1)/rd;
+        hm = (sqrtR0*h0 + sqrtR1*h1)/rd;
 
         cm = sqrt((hm - um*um/2)*(solver->g-1));
 
@@ -202,7 +221,7 @@ void solverCalcFlux(struct solverStruct* solver){
         solverUpdateCFL(solver, e0, e2);
 
         for(jj=0;jj<3;jj++){
-            solver->flux[ii][jj] = (solver->F[ii][jj] + solver->F[ii+1][jj])/2;
+            solver->flux[ii][jj] = (F0[jj] + F1[jj])/2;
             solver->flux[ii][jj] -= (vec0[jj]*e0*alp0 + vec1[jj]*e1*alp1 + vec2[jj]*e2*alp2)/2;
         };
 
@@ -213,7 +232,7 @@ void solverCalcFlux(struct solverStruct* solver){
         e2 = (um + cm);
 
         for(jj=0;jj<3;jj++){
-            solver->flux[ii][jj] = (solver->F[ii+1][jj] - solver->F[ii][jj])/2;
+            solver->flux[ii][jj] = (F0[jj] + F1[jj])/2;
             solver->flux[ii][jj] -= (vec0[jj]*e0*alp0 + vec1[jj]*e1*alp1 + vec2[jj]*e2*alp2)/2;
         };
 
@@ -229,7 +248,7 @@ void solverPropagate(struct solverStruct* solver){
     FTYPE** aux;
     FTYPE u;
 
-    solverCalcF(solver);
+    //solverCalcF(solver);
 
     solverCalcFlux(solver);
 

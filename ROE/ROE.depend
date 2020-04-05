@@ -37,7 +37,13 @@
 	"solver.h"
 	"input.h"
 
-1585483280 /home/carlos/Documents/Riemann solver/riemannProblem/ROE/solver.h
+1586097011 /home/carlos/Documents/Riemann solver/riemannProblem/ROE/solver.h
 
 1585426306 /home/carlos/Documents/Riemann solver/riemannProblem/ROE/input.h
+
+1585520467 source:/home/carlos/Documents/Riemann solver/riemannProblem/ROE/main.c
+	<stdio.h>
+	<stdlib.h>
+	"input.h"
+	"solver.h"
 

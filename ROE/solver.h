@@ -9,11 +9,11 @@ struct solverStruct{
     int N;
     FTYPE** U;
     FTYPE** newU;
-    FTYPE** F;
+    //FTYPE** F;
     FTYPE R;
     FTYPE g;
     FILE* output;
-    FTYPE* sqrtRho;
+    //FTYPE* sqrtRho;
     FTYPE** flux;
     FTYPE cc;
     FTYPE saveStep;
