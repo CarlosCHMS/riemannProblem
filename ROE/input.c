@@ -6,6 +6,10 @@
 
 void inputInit(struct inputStruct* input){
 
+    /*
+    Initialize the inputStruct reading the input file
+    */
+
     FILE* f1;
     int ii, jj, kk;
     char c;
@@ -115,8 +119,11 @@ void inputInit(struct inputStruct* input){
 
 void inputPrintParameters(struct inputStruct* input){
 
+    /*
+    Print the inputs to the command shell
+    */
+
     printf("\nParameters:");
-    //printf("\nc: %f", input->c);
     printf("\nNs: %i", input->Ns);
     printf("\nNp: %i", input->Np);
     printf("\nn: %f", input->n);

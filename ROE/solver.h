@@ -34,14 +34,16 @@ void calcUPH(struct solverStruct* solver, int ii,  FTYPE* u, FTYPE* p, FTYPE* h)
 
 void solverCalcF(struct solverStruct* solver);
 
-void solverCalcFlux(struct solverStruct* solver);
-
 void solverPropagate(struct solverStruct* solver);
 
 void solverSimulate(struct solverStruct* solver);
 
-FTYPE solverEntropyFix(struct solverStruct* solver, FTYPE e);
+// ROE functions
 
-void solverUpdateCFL(struct solverStruct* solver, FTYPE e0, FTYPE e2);
+void solverCalcFluxROE(struct solverStruct* solver);
+
+FTYPE solverEntropyFixROE(struct solverStruct* solver, FTYPE e);
+
+void solverUpdateCFLROE(struct solverStruct* solver, FTYPE e0, FTYPE e2);
 
 #endif // SOLVER_H_INCLUDED

@@ -167,7 +167,89 @@ void solverCalcF(struct solverStruct* solver){
 
 }
 */
-void solverCalcFlux(struct solverStruct* solver){
+
+void solverPropagate(struct solverStruct* solver){
+
+    /*
+    Propagation fo the solution
+    */
+
+    int ii, jj;
+    FTYPE** aux;
+    FTYPE u;
+
+    // Calculate the flux
+    solverCalcFluxROE(solver);
+
+    // Propagation of the states
+
+    // Left boundary propagation
+    for(jj=0; jj<3; jj++){
+        solver->newU[0][jj] = solver->U[0][jj] - solver->cc*(solver->flux[0][jj]);
+    };
+    solver->newU[0][1] = solver->newU[1][1]/3;
+
+    // Interior propagation
+    for(ii=1; ii<(solver->N-1); ii++){
+        for(jj=0; jj<3; jj++){
+            solver->newU[ii][jj] = solver->U[ii][jj] - solver->cc*(solver->flux[ii][jj] - solver->flux[ii-1][jj] );
+
+        };
+
+    };
+
+    // Right boundary propagation
+    for(jj=0; jj<3; jj++){
+        solver->newU[solver->N-1][jj] = solver->U[solver->N-1][jj] + solver->cc*(solver->flux[solver->N-2][jj]);
+
+    };
+    solver->newU[solver->N-1][1] = solver->newU[solver->N-2][1]/3;
+
+    // Reatribuition
+    aux = solver->U;
+    solver->U = solver->newU;
+    solver->newU = aux;
+
+}
+
+void solverSimulate(struct solverStruct* solver){
+
+    /*
+    Run the simulation and save the results
+
+    */
+
+    int ii;
+    float save = solver->saveStep;
+
+    // Print the initial states
+    solverPrint(solver, 0);
+
+    for(ii=0; ii<solver->Ns; ii++){
+        solver->CFL = 0.0;
+        solverPropagate(solver);
+        printf("\nCFL in the iteration %i: %f", ii, solver->CFL);
+
+        // Print solutions
+        if(ii > save){
+            printf("\nCalculating solution %i.", ii);
+            solverPrint(solver, ii);
+            save += solver->saveStep;
+
+        };
+
+    };
+
+    printf("\nCalculating solution %i.", ii);
+
+    // Print final solution
+    solverPrint(solver, ii);
+
+    fclose(solver->output);
+
+}
+
+void solverCalcFluxROE(struct solverStruct* solver){
 
     /*
     Calculate fluxes on cells borders using ROE method
@@ -243,14 +325,14 @@ void solverCalcFlux(struct solverStruct* solver){
 
         //Eigenvelues
         e0 = abs(um - cm);
-        e0 = solverEntropyFix(solver, e0);
+        e0 = solverEntropyFixROE(solver, e0);
 
         e1 = abs(um);
 
         e2 = abs(um + cm);
-        e2 = solverEntropyFix(solver, e2);
+        e2 = solverEntropyFixROE(solver, e2);
 
-        solverUpdateCFL(solver, e0, e2);
+        solverUpdateCFLROE(solver, e0, e2);
 
         // Flux calculation
         for(jj=0;jj<3;jj++){
@@ -275,80 +357,9 @@ void solverCalcFlux(struct solverStruct* solver){
 
 }
 
-void solverPropagate(struct solverStruct* solver){
+FTYPE solverEntropyFixROE(struct solverStruct* solver, FTYPE e){
 
-    /*
-    Propagation fo the solution
-    */
-
-    int ii, jj;
-    FTYPE** aux;
-    FTYPE u;
-
-    // Calculate the flux
-    solverCalcFlux(solver);
-
-    // Propagation of the states
-
-    // Left boundary propagation
-    for(jj=0; jj<3; jj++){
-        solver->newU[0][jj] = solver->U[0][jj] - solver->cc*(solver->flux[0][jj]);
-    };
-    solver->newU[0][1] = solver->newU[1][1]/3;
-
-    // Interior propagation
-    for(ii=1; ii<(solver->N-1); ii++){
-        for(jj=0; jj<3; jj++){
-            solver->newU[ii][jj] = solver->U[ii][jj] - solver->cc*(solver->flux[ii][jj] - solver->flux[ii-1][jj] );
-
-        };
-
-    };
-
-    // Right boundary propagation
-    for(jj=0; jj<3; jj++){
-        solver->newU[solver->N-1][jj] = solver->U[solver->N-1][jj] + solver->cc*(solver->flux[solver->N-2][jj]);
-
-    };
-    solver->newU[solver->N-1][1] = solver->newU[solver->N-2][1]/3;
-
-    // Reatribuition
-    aux = solver->U;
-    solver->U = solver->newU;
-    solver->newU = aux;
-
-}
-
-void solverSimulate(struct solverStruct* solver){
-
-    int ii;
-    float save = solver->saveStep;
-
-    solverPrint(solver, 0);
-
-    for(ii=0; ii<solver->Ns; ii++){
-        solver->CFL = 0.0;
-        solverPropagate(solver);
-        printf("\nCFL in the iteration %i: %f", ii, solver->CFL);
-
-        if(ii > save){
-            printf("\nCalculating solution %i.", ii);
-            solverPrint(solver, ii);
-            save += solver->saveStep;
-
-        };
-
-    };
-
-    printf("\nCalculating solution %i.", ii);
-
-    solverPrint(solver, ii);
-
-    fclose(solver->output);
-
-}
-
-FTYPE solverEntropyFix(struct solverStruct* solver, FTYPE e){
+    // Entropy fix of ROE method
 
     if(e < solver->eLim){
 
@@ -360,8 +371,9 @@ FTYPE solverEntropyFix(struct solverStruct* solver, FTYPE e){
 
 }
 
-void solverUpdateCFL(struct solverStruct* solver, FTYPE e0, FTYPE e2){
+void solverUpdateCFLROE(struct solverStruct* solver, FTYPE e0, FTYPE e2){
 
+    // CFL number calculation
     FTYPE newCFL;
 
     newCFL = e0*solver->cc;
