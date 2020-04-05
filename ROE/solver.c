@@ -7,19 +7,19 @@
 
 void solverAlloc(struct solverStruct* solver){
 
+    /*
+    Memory allocation solverStruct arrays
+    */
+
     int ii;
 
     solver->U = (FTYPE**)malloc(solver->N*sizeof(FTYPE*));
     solver->newU = (FTYPE**)malloc(solver->N*sizeof(FTYPE*));
-    //solver->F = (FTYPE**)malloc(solver->N*sizeof(FTYPE*));
     solver->flux = (FTYPE**)malloc((solver->N-1)*sizeof(FTYPE*));
-
-    //solver->sqrtRho = (FTYPE*)malloc(solver->N*sizeof(FTYPE));
 
     for(ii=0; ii<solver->N; ii++){
         solver->U[ii] = (FTYPE*)malloc(3*sizeof(FTYPE));
         solver->newU[ii] = (FTYPE*)malloc(3*sizeof(FTYPE));
-        //solver->F[ii] = (FTYPE*)malloc(3*sizeof(FTYPE));
 
         if(ii<(solver->N-1)){
             solver->flux[ii] = (FTYPE*)malloc(3*sizeof(FTYPE));
@@ -30,6 +30,13 @@ void solverAlloc(struct solverStruct* solver){
 }
 
 void solverInit(struct solverStruct* solver, struct inputStruct* input){
+
+    /*
+    Initialization of the solver
+    1: Information is obtained from input struct
+    2: Solver arrays are allocated
+    3: Solver U and Unew are initialized
+    */
 
     solver->Ns = input->Ns;
     solver->N = input->Np;
@@ -49,11 +56,16 @@ void solverInit(struct solverStruct* solver, struct inputStruct* input){
 
 void solverInitU(struct solverStruct* solver, int n, FTYPE p0, FTYPE T0, FTYPE p1, FTYPE T1){
 
-    // rho: volumetric density
-    // e: volumetric internal energy
-    // U[0]: density
-    // U[1]: mass flux
-    // U[2]: volumetric total internal energy
+    /*
+    Initialization of U states array
+
+    Description of the variables
+    rho: volumetric density
+    e: volumetric internal energy
+    U[0]: density
+    U[1]: mass flux
+    U[2]: volumetric total internal energy
+    */
 
     int ii;
     FTYPE u, rho0, e0, rho1, e1;
@@ -89,6 +101,9 @@ void solverInitU(struct solverStruct* solver, int n, FTYPE p0, FTYPE T0, FTYPE p
 
 void solverPrint(struct solverStruct* solver, int jj){
 
+    /*
+    Print the solution data to output.csv file
+    */
     int ii;
 
     fprintf(solver->output, "%i, %i, %f\n", solver->N, jj, solver->CFL);
@@ -118,9 +133,14 @@ void solverPrint(struct solverStruct* solver, int jj){
 
 void calcUPH(struct solverStruct* solver, int ii,  FTYPE* u, FTYPE* p, FTYPE* h){
 
-    //u: velocity
-    //p: pressure
-    //h: massic entalpy
+    /*
+    Calculate velocity pressure and massic entalpy from states data
+
+    Description of variables:
+    u: velocity
+    p: pressure
+    h: massic entalpy
+    */
 
     *u = solver->U[ii][1]/solver->U[ii][0];
     *p = (solver->U[ii][2] - solver->U[ii][1]*(*u)/2)*(solver->g - 1);
@@ -149,6 +169,13 @@ void solverCalcF(struct solverStruct* solver){
 */
 void solverCalcFlux(struct solverStruct* solver){
 
+    /*
+    Calculate fluxes on cells borders using ROE method
+
+    */
+
+    int ii, jj;
+
     FTYPE u0, p0, h0, u1, p1, h1, rhom, rd, um, hm, cm;
     FTYPE alp0, alp1, alp2, e0, e1, e2, sqrtR0, sqrtR1;
     FTYPE* F0;
@@ -165,18 +192,18 @@ void solverCalcFlux(struct solverStruct* solver){
     vec1 = (FTYPE*)malloc(3*sizeof(FTYPE));
     vec2 = (FTYPE*)malloc(3*sizeof(FTYPE));
 
-    int ii, jj;
-
     for(ii=0; ii<(solver->N-1); ii++){
 
         calcUPH(solver, ii, &u0, &p0, &h0);
 
+        // Centred fluxes on border 0
         F0[0] = solver->U[ii][1];
         F0[1] = solver->U[ii][1]*u0 + p0;
         F0[2] = solver->U[ii][1]*h0;
 
         calcUPH(solver, ii+1, &u1, &p1, &h1);
 
+        // Centred fluxes on border 1
         F1[0] = solver->U[ii+1][1];
         F1[1] = solver->U[ii+1][1]*u1 + p1;
         F1[2] = solver->U[ii+1][1]*h1;
@@ -184,6 +211,7 @@ void solverCalcFlux(struct solverStruct* solver){
         sqrtR0 = sqrt(solver->U[ii][0]);
         sqrtR1 = sqrt(solver->U[ii+1][0]);
 
+        // Calculate the border variable values using ROE mean
         rhom = sqrtR0*sqrtR1;
 
         rd = (sqrtR0 + sqrtR1);
@@ -191,12 +219,14 @@ void solverCalcFlux(struct solverStruct* solver){
         //pm = (solver->sqrtRho[ii]*p0 + solver->sqrtRho[ii+1]*p1)/rd
         hm = (sqrtR0*h0 + sqrtR1*h1)/rd;
 
+        // Calculate sound velocity on the border
         cm = sqrt((hm - um*um/2)*(solver->g-1));
 
         alp0 = ((p1-p0) - cm*rhom*(u1-u0))/(2*(cm*cm));
         alp1 = (solver->U[ii+1][0] - solver->U[ii][0]) - (p1 - p0)/(cm*cm);
         alp2 = ((p1-p0) + cm*rhom*(u1-u0))/(2*(cm*cm));
 
+        // Eigenvectors
         vec0[0] = 1;
         vec0[1] = um - cm;
         vec0[2] = hm - um*cm;
@@ -210,6 +240,8 @@ void solverCalcFlux(struct solverStruct* solver){
         vec2[2] = hm + um*cm;
 
         // run
+
+        //Eigenvelues
         e0 = abs(um - cm);
         e0 = solverEntropyFix(solver, e0);
 
@@ -220,6 +252,7 @@ void solverCalcFlux(struct solverStruct* solver){
 
         solverUpdateCFL(solver, e0, e2);
 
+        // Flux calculation
         for(jj=0;jj<3;jj++){
             solver->flux[ii][jj] = (F0[jj] + F1[jj])/2;
             solver->flux[ii][jj] -= (vec0[jj]*e0*alp0 + vec1[jj]*e1*alp1 + vec2[jj]*e2*alp2)/2;
@@ -244,21 +277,26 @@ void solverCalcFlux(struct solverStruct* solver){
 
 void solverPropagate(struct solverStruct* solver){
 
+    /*
+    Propagation fo the solution
+    */
+
     int ii, jj;
     FTYPE** aux;
     FTYPE u;
 
-    //solverCalcF(solver);
-
+    // Calculate the flux
     solverCalcFlux(solver);
 
+    // Propagation of the states
+
+    // Left boundary propagation
     for(jj=0; jj<3; jj++){
         solver->newU[0][jj] = solver->U[0][jj] - solver->cc*(solver->flux[0][jj]);
     };
-    // Left boundary condition
-    // Interpolate massa flux
     solver->newU[0][1] = solver->newU[1][1]/3;
 
+    // Interior propagation
     for(ii=1; ii<(solver->N-1); ii++){
         for(jj=0; jj<3; jj++){
             solver->newU[ii][jj] = solver->U[ii][jj] - solver->cc*(solver->flux[ii][jj] - solver->flux[ii-1][jj] );
@@ -267,14 +305,14 @@ void solverPropagate(struct solverStruct* solver){
 
     };
 
+    // Right boundary propagation
     for(jj=0; jj<3; jj++){
         solver->newU[solver->N-1][jj] = solver->U[solver->N-1][jj] + solver->cc*(solver->flux[solver->N-2][jj]);
 
     };
-    // Right boundary condition
-    // Interpolate mass flux
     solver->newU[solver->N-1][1] = solver->newU[solver->N-2][1]/3;
 
+    // Reatribuition
     aux = solver->U;
     solver->U = solver->newU;
     solver->newU = aux;
