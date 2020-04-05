@@ -27,7 +27,7 @@ class configuration():
 
     def __init__(self, Np=100, xtot=50, dt=0.0001, Ns=100,
                  xchange=25, p0=1e6, T0=300, p1=1e5, T1=300, nSave=4, R=287,
-                 gamma=1.4):
+                 gamma=1.4, flux='ROE'):
 
         self.var = dict()
 
@@ -47,11 +47,19 @@ class configuration():
         self.var['R'] = R
         self.var['gamma'] = gamma
 
+        self.var['flux'] = flux
+
         # Calculated values:
         self.var['dx'] = xtot/(Np-1)
         self.var['n'] = xchange/self.var['dx']
         self.var['cc'] = self.var['dt']/self.var['dx']
         self.var['saveStep'] = Ns/nSave
+
+        self.var['fluxType'] = 0
+        if self.var['flux'] == 'ROE':
+            self.var['fluxType'] = 1
+        elif self.var['flux'] == 'AUSM':
+            self.var['fluxType'] = 2
 
         self.x = xtot*np.arange(0, Np)/Np
 
@@ -70,6 +78,9 @@ class configuration():
         for v in ['n', 'saveStep', 'p0', 'T0', 'p1', 'T1', 'cc', 'R', 'gamma']:
             print('%s, %f,' % (v, self.var[v]))
 
+        for v in ['fluxType']:
+            print('%s, %i,' % (v, self.var[v]))
+
         return None
 
     def writeAuxFile(self):
@@ -81,6 +92,9 @@ class configuration():
 
         for v in ['n', 'saveStep', 'p0', 'T0', 'p1', 'T1', 'cc', 'R', 'gamma']:
             f.write('%s, %f,\n' % (v, self.var[v]))
+
+        for v in ['fluxType']:
+            f.write('%s, %i,\n' % (v, self.var[v]))
 
         f.close()
 
@@ -190,9 +204,9 @@ if __name__ == "__main__":
 
     conf1 = configuration(Ns=300, Np=500, xtot=50,
                           xchange=25, p0=1e6, T0=300, p1=1e5, T1=300,
-                          dt=0.00014)
+                          dt=0.00013, flux='ROE')
 
-    print("\nROE - Solve Riemann problem with Roe solver:")
+    print("\nSolve Riemann problem with a CFD solver:")
     conf1.printVar()
     print("\nAux File:")
     conf1.printVarAuxFile()
@@ -204,29 +218,29 @@ if __name__ == "__main__":
     out1 = output(conf1)
     print("CFL: ", out1.CFL)
 
-    roeVar = out1.calcVar(out1.Ns-1)
+    cfdVar = out1.calcVar(out1.Ns-1)
 
     # Solving using characteristics
     char1 = ch.problem(xchange=25.0, p1=1e5, T1=300, p4=1e6, T4=300)
-    charVar = char1.calcVar(roeVar['t'], out1.x)
+    charVar = char1.calcVar(cfdVar['t'], out1.x)
 
     plt.close('all')
 
     v = 'rho'
     plt.figure()
 
-    # ploting roe results
-    plt.plot(roeVar['x'], roeVar[v])
+    # ploting cfd results
+    plt.plot(cfdVar['x'], cfdVar[v])
 
     # ploting characteristics results
-    plt.plot(charVar['x'], charVar[v],'--')
+    plt.plot(charVar['x'], charVar[v], '--')
 
-    plt.legend(['roe', 'charac.'])
+    plt.legend(['CFD', 'charac.'])
 
-    plt.xlabel("%s %s" % ('x', roeVar['unit']['x']))
-    plt.ylabel("%s %s" % (v, roeVar['unit'][v]))
+    plt.xlabel("%s %s" % ('x', cfdVar['unit']['x']))
+    plt.ylabel("%s %s" % (v, cfdVar['unit'][v]))
 
-    title = "t: %f [s]" % roeVar['t']
+    title = "t: %f [s]" % cfdVar['t']
     plt.title(title)
 
     plt.grid(True)

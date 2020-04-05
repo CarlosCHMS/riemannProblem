@@ -45,6 +45,11 @@ void solverInit(struct solverStruct* solver, struct inputStruct* input){
     solver->cc = input->cc;
     solver->saveStep = input->saveStep;
     solver->eLim = 1e-6;
+    solver->fluxType = input->fluxType;
+
+    // (a, b) = (0, 0) or (a, b) = (3/16, 1/8)
+    solver->AUSMa = 3/16;
+    solver->AUSMb = 1/8;
 
     solver->output = fopen("./output.csv", "w");
 
@@ -131,43 +136,6 @@ void solverPrint(struct solverStruct* solver, int jj){
 
 }
 
-void calcUPH(struct solverStruct* solver, int ii,  FTYPE* u, FTYPE* p, FTYPE* h){
-
-    /*
-    Calculate velocity pressure and massic entalpy from states data
-
-    Description of variables:
-    u: velocity
-    p: pressure
-    h: massic entalpy
-    */
-
-    *u = solver->U[ii][1]/solver->U[ii][0];
-    *p = (solver->U[ii][2] - solver->U[ii][1]*(*u)/2)*(solver->g - 1);
-    *h = (solver->U[ii][2] + *p)/solver->U[ii][0];
-
-}
-
-/*
-void solverCalcF(struct solverStruct* solver){
-
-    int ii;
-    FTYPE u, p, h;
-
-    for(ii=0; ii<solver->N; ii++){
-
-        calcUPH(solver, ii, &u, &p, &h);
-        solver->F[ii][0] = solver->U[ii][1];
-        solver->F[ii][1] = solver->U[ii][1]*u + p;
-        solver->F[ii][2] = solver->U[ii][1]*h;
-
-        solver->sqrtRho[ii] = sqrt(solver->U[ii][0]);
-
-    };
-
-}
-*/
-
 void solverPropagate(struct solverStruct* solver){
 
     /*
@@ -179,7 +147,11 @@ void solverPropagate(struct solverStruct* solver){
     FTYPE u;
 
     // Calculate the flux
-    solverCalcFluxROE(solver);
+    if(solver->fluxType == 1){
+        solverCalcFluxROE(solver);
+    }else if(solver->fluxType == 2){
+        solverCalcFluxAUSM(solver);
+    };
 
     // Propagation of the states
 
@@ -216,7 +188,6 @@ void solverSimulate(struct solverStruct* solver){
 
     /*
     Run the simulation and save the results
-
     */
 
     int ii;
@@ -249,11 +220,30 @@ void solverSimulate(struct solverStruct* solver){
 
 }
 
+// ROE functions
+
+void calcUPH(struct solverStruct* solver, int ii,  FTYPE* u, FTYPE* p, FTYPE* h){
+
+    /*
+    Calculate velocity pressure and massic entalpy from states data
+
+    Description of variables:
+    u: velocity
+    p: pressure
+    h: massic entalpy
+    */
+
+    *u = solver->U[ii][1]/solver->U[ii][0];
+    *p = (solver->U[ii][2] - solver->U[ii][1]*(*u)/2)*(solver->g - 1);
+    *h = (solver->U[ii][2] + *p)/solver->U[ii][0];
+
+}
+
+
 void solverCalcFluxROE(struct solverStruct* solver){
 
     /*
     Calculate fluxes on cells borders using ROE method
-
     */
 
     int ii, jj;
@@ -382,6 +372,160 @@ void solverUpdateCFLROE(struct solverStruct* solver, FTYPE e0, FTYPE e2){
     };
 
     newCFL = e2*solver->cc;
+    if(newCFL > solver->CFL){
+        solver->CFL = newCFL;
+    };
+
+}
+
+// functions created for AUSMp application
+
+void solverCalcFluxAUSM(struct solverStruct* solver){
+
+    /*
+    Calculate the fluxes using AUSM+ method
+    */
+
+    FTYPE u0, p0, h0, u1, p1, h1;
+    FTYPE a01, M0, M1, M01, p01, a0, a1, Mp, Mn, Pp, Pn;
+
+    int ii;
+
+    for(ii=0; ii<(solver->N-1); ii++){
+
+        calcUPHA(solver, ii, &u0, &p0, &h0, &a0);
+        calcUPHA(solver, ii+1, &u1, &p1, &h1, &a1);
+
+        // Sound velocity in the interface
+        a01 = (a0 + a1)/2;
+        //a01 = sqrt(a0*a1);
+
+        M0 = u0/a01;
+        M1 = u1/a01;
+
+        solverCalcSplitP(solver, &M0, &Mp, &Pp);
+        solverCalcSplitN(solver, &M1, &Mn, &Pn);
+
+        //M01 = solverCalcSplitMachP(solver, &M0) + solverCalcSplitMachN(solver, &M1);
+        M01 = Mp + Mn;
+
+        /*
+        M01p = (M01 + fabs(M01))/2;
+        M01n = (M01 - fabs(M01))/2;
+        */
+
+        //p01 = solverCalcSplitPresP(solver, &M0)*p0 + solverCalcSplitPresN(solver, &M1)*p1;
+        p01 = p0*Pp + p1*Pn;
+
+        //printf("\na01, M01p, M01n, p01 = %f, %f, %f, %f", a01, M01p, M01n, p01);
+
+        /*
+        solver->flux[ii][0] = a01*(solver->U[ii][0]*M01p + solver->U[ii+1][0]*M01n);
+        solver->flux[ii][1] = a01*(solver->U[ii][0]*u0*M01p + solver->U[ii+1][0]*u1*M01n) + p01;
+        solver->flux[ii][2] = a01*(solver->U[ii][0]*h0*M01p + solver->U[ii+1][0]*h1*M01n);
+        */
+
+        if(M01 > 0){
+
+            solver->flux[ii][0] = a01*solver->U[ii][0]*M01;
+            solver->flux[ii][1] = a01*solver->U[ii][0]*u0*M01;
+            solver->flux[ii][2] = a01*solver->U[ii][0]*h0*M01;
+
+        } else {
+
+            solver->flux[ii][0] = a01*solver->U[ii+1][0]*M01;
+            solver->flux[ii][1] = a01*solver->U[ii+1][0]*u1*M01;
+            solver->flux[ii][2] = a01*solver->U[ii+1][0]*h1*M01;
+
+        };
+
+        solverUpdateCFL(solver, fabs(u0) + a0);
+
+        solver->flux[ii][1] += p01;
+
+    };
+
+}
+
+void calcUPHA(struct solverStruct* solver, int ii,  FTYPE* u, FTYPE* p, FTYPE* h, FTYPE* a){
+
+    //u: velocity
+    //p: pressure
+    //h: massic entalpy
+    //a: sound velocity
+
+    *u = solver->U[ii][1]/solver->U[ii][0];
+    *p = (solver->U[ii][2] - solver->U[ii][1]*(*u)/2)*(solver->g - 1);
+    *h = (solver->U[ii][2] + *p)/solver->U[ii][0];
+    *a = sqrt( (*h - (*u)*(*u)/2)*(solver->g - 1) );
+
+}
+
+void solverCalcSplitP(struct solverStruct* solver, FTYPE* M, FTYPE* Mp, FTYPE* Pp){
+
+    FTYPE x, y;
+
+    if(*M >= 1){
+
+        *Pp = 1.0;
+        *Mp = *M;
+
+    } else if(*M <= -1){
+
+        *Pp = 0.0;
+        *Mp = 0.0;
+
+    } else {
+
+        x = (*M + 1)*(*M + 1)/4;
+        y = ((*M)*(*M) - 1)*((*M)*(*M) - 1);
+
+        *Pp = x*(2 - *M) + solver->AUSMa*y*(*M);
+        *Mp = x + solver->AUSMb*y;
+
+    };
+
+}
+
+void solverCalcSplitN(struct solverStruct* solver, FTYPE* M, FTYPE* Mn, FTYPE* Pn){
+
+    solverCalcSplitP(solver, M, Mn, Pn);
+    *Mn = (*M) - (*Mn);
+    *Pn = 1.0 - (*Pn);
+
+}
+
+void solverCheckSplit(struct solverStruct* solver, int flag){
+
+    FTYPE aux[] = {-1.25, -1.0, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 0.75, 1.0, 1.25};
+    FTYPE Pp, Mp, Pn, Mn;
+    int ii;
+
+
+    for(ii = 0; ii<11; ii++){
+
+        solverCalcSplitP(solver, &aux[ii], &Mp, &Pp);
+        solverCalcSplitN(solver, &aux[ii], &Mn, &Pn);
+
+        if(flag == 0){
+
+            printf("\nM = %f, Mp = %f, Mn = %f", aux[ii], Mp, Mn);
+
+        } else {
+
+            printf("\nM = %f, Pp = %f, Pn = %f", aux[ii], Pp, Pn);
+
+        };
+
+    };
+
+}
+
+void solverUpdateCFL(struct solverStruct* solver, FTYPE e0){
+
+    FTYPE newCFL;
+
+    newCFL = e0*solver->cc;
     if(newCFL > solver->CFL){
         solver->CFL = newCFL;
     };

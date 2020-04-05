@@ -30,24 +30,24 @@
 
 1585426306 /home/carlos/Documents/Riemann solver/ROE/ROE_c/ROE/input.h
 
-1586105669 source:/home/carlos/Documents/Riemann solver/riemannProblem/ROE/input.c
+1586106940 source:/home/carlos/Documents/Riemann solver/riemannProblem/ROE/input.c
 	<stdio.h>
 	<stdlib.h>
 	<string.h>
 	"solver.h"
 	"input.h"
 
-1586105862 /home/carlos/Documents/Riemann solver/riemannProblem/ROE/solver.h
+1586115242 /home/carlos/Documents/Riemann solver/riemannProblem/ROE/solver.h
 
-1585426306 /home/carlos/Documents/Riemann solver/riemannProblem/ROE/input.h
+1586115698 /home/carlos/Documents/Riemann solver/riemannProblem/ROE/input.h
 
-1585520467 source:/home/carlos/Documents/Riemann solver/riemannProblem/ROE/main.c
+1586107564 source:/home/carlos/Documents/Riemann solver/riemannProblem/ROE/main.c
 	<stdio.h>
 	<stdlib.h>
 	"input.h"
 	"solver.h"
 
-1586105837 source:/home/carlos/Documents/Riemann solver/riemannProblem/ROE/solver.c
+1586115673 source:/home/carlos/Documents/Riemann solver/riemannProblem/ROE/solver.c
 	<stdio.h>
 	<stdlib.h>
 	<math.h>

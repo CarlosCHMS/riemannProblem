@@ -97,6 +97,12 @@ void inputInit(struct inputStruct* input){
                     input->gamma = strtod(s, NULL);
                 };
 
+            }else if(ii==11){
+
+                if(kk==1){
+                    input->fluxType = strtod(s, NULL);
+                };
+
             };
 
             kk ++;
@@ -135,5 +141,6 @@ void inputPrintParameters(struct inputStruct* input){
     printf("\ncc: %f", input->cc);
     printf("\nR: %f", input->R);
     printf("\ngamma: %f", input->gamma);
+    printf("\nfluxType: %i", input->fluxType);
 
 };

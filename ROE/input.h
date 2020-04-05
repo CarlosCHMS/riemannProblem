@@ -5,10 +5,9 @@
 
     struct inputStruct{
 
-        //FTYPE c;
-        //FTYPE k;
         int Ns;
         int Np;
+        int fluxType;
 
         FTYPE n;
         FTYPE saveStep;
